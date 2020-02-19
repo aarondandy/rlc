@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::io::{self, Read};
 use atty::Stream;
+use exitfailure::ExitFailure;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -11,7 +12,7 @@ struct Opt {
     file_path: Option<PathBuf>
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), ExitFailure> {
     let opt = Opt::from_args();
 
     let count = match opt.file_path {
@@ -26,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn count_lines_in_file(file_path: PathBuf) -> Result<u64, Box<dyn std::error::Error>> {
+fn count_lines_in_file(file_path: PathBuf) -> Result<u64, std::io::Error> {
     let mut count: u64 = 0;
     let mut buffer: [u8; 4096] = [0; 4096];
     let mut source = File::open(file_path)?;
@@ -43,7 +44,7 @@ fn count_lines_in_file(file_path: PathBuf) -> Result<u64, Box<dyn std::error::Er
     Ok(count)
 }
 
-fn count_lines_from_pipe() -> Result<u64, Box<dyn std::error::Error>> {
+fn count_lines_from_pipe() -> Result<u64, std::io::Error> {
     let mut count: u64 = 0;
     let mut buffer: [u8; 4096] = [0; 4096];
     let source = io::stdin();
