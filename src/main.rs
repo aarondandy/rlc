@@ -28,29 +28,20 @@ fn main() -> Result<(), ExitFailure> {
 }
 
 fn count_lines_in_file(file_path: PathBuf) -> Result<u64, std::io::Error> {
-    let mut count: u64 = 0;
-    let mut buffer: [u8; 4096] = [0; 4096];
-    let mut source = File::open(file_path)?;
-
-    loop {
-        let read_count = source.read(&mut buffer[..])?;
-        if read_count == 0 {
-            break;
-        }
-
-        count += count_breaks(&buffer[..read_count]);
-    }
-
-    Ok(count)
+    let source = File::open(file_path)?;
+    count_readable_stuff(Box::new(source))
 }
 
 fn count_lines_from_pipe() -> Result<u64, std::io::Error> {
+    count_readable_stuff(Box::new(io::stdin()))
+}
+
+fn count_readable_stuff(mut ready_thing: Box<dyn Read>) -> Result<u64, std::io::Error> {
     let mut count: u64 = 0;
     let mut buffer: [u8; 4096] = [0; 4096];
-    let source = io::stdin();
 
     loop {
-        let read_count = source.lock().read(&mut buffer[..])?;
+        let read_count = ready_thing.read(&mut buffer[..])?;
         if read_count == 0 {
             break;
         }
@@ -62,5 +53,5 @@ fn count_lines_from_pipe() -> Result<u64, std::io::Error> {
 }
 
 fn count_breaks(slice: &[u8]) -> u64 {
-    slice.iter().filter(|b| **b == b'\n').count() as u64
+    slice.into_iter().filter(|b| **b == b'\n').count() as u64
 }
