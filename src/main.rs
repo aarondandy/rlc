@@ -16,9 +16,9 @@ fn main() -> Result<(), ExitFailure> {
     let opt = Opt::from_args();
 
     let count = match opt.file_path {
-        Some(file_path) => count_lines_in_file(file_path),
+        Some(file_path) => count_readable_stuff(File::open(file_path)?),
         None => match atty::is(Stream::Stdin) {
-            false => count_lines_from_pipe(),
+            false => count_readable_stuff(io::stdin()),
             true => { panic!("No input."); }
         }
     }?;
@@ -27,31 +27,16 @@ fn main() -> Result<(), ExitFailure> {
     Ok(())
 }
 
-fn count_lines_in_file(file_path: PathBuf) -> Result<u64, std::io::Error> {
-    let source = File::open(file_path)?;
-    count_readable_stuff(Box::new(source))
-}
-
-fn count_lines_from_pipe() -> Result<u64, std::io::Error> {
-    count_readable_stuff(Box::new(io::stdin()))
-}
-
-fn count_readable_stuff(mut ready_thing: Box<dyn Read>) -> Result<u64, std::io::Error> {
+fn count_readable_stuff<T: Read>(mut reader: T) -> Result<u64, std::io::Error> {
     let mut count: u64 = 0;
     let mut buffer: [u8; 4096] = [0; 4096];
-
-    loop {
-        let read_count = ready_thing.read(&mut buffer[..])?;
-        if read_count == 0 {
-            break;
-        }
-
-        count += count_breaks(&buffer[..read_count]);
+    let mut read_count: usize;
+    while {
+        read_count = reader.read(&mut buffer)?;
+        read_count != 0
+    } {
+        count += buffer[..read_count].iter().filter(|b| **b == b'\n').count() as u64
     }
 
     Ok(count)
-}
-
-fn count_breaks(slice: &[u8]) -> u64 {
-    slice.into_iter().filter(|b| **b == b'\n').count() as u64
 }
