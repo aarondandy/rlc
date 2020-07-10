@@ -31,13 +31,14 @@ fn main() -> Result<(), ExitFailure> {
 
 fn count_readable_stuff(mut reader: Box<dyn Read>) -> Result<u64, std::io::Error> {
     let mut count: u64 = 0;
-    let mut buffer: [u8; 4096] = [0; 4096];
-    let mut read_count: usize;
-    while {
-        read_count = reader.read(&mut buffer)?;
-        read_count != 0
-    } {
-        count += buffer[..read_count].iter().filter(|&&b| b == b'\n').count() as u64
+    let mut buffer: [u8; 32*1024] = [0u8; 32*1024];
+    loop {
+        let read_count = reader.read(&mut buffer)?;
+        if read_count == 0 {
+            break;
+        }
+
+        count += buffer[..read_count].into_iter().filter(|&&b| b == b'\n').count() as u64
     }
 
     Ok(count)
